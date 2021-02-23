@@ -3,23 +3,25 @@ package IoT_Project;
 import java.io.*;
 import java.sql.*;
 
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+
+
 public class DBConnection {
 	private Connection con = null;
 	private PreparedStatement pstmt = null;
 	private ResultSet rs = null;
 	
 	public DBConnection() {
-		String jdbcUrl = "jdbc:mysql://localhost:3306/iotDB?serverTimezone=Asia/Seoul";
-		String dbId = "ks";
-		String dbPass = "ks";
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-		} catch (ClassNotFoundException e) {
+			Context context = new InitialContext();
+			DataSource dataSource = (DataSource)context.lookup("java:comp/env/jdbc/iotDB");
+			con = dataSource.getConnection();
+			
+		} catch (NamingException e) {
 			e.printStackTrace();
-		}
-
-		try {
-			con = DriverManager.getConnection(jdbcUrl, dbId, dbPass);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -52,8 +54,23 @@ public class DBConnection {
 			e.printStackTrace();
 			
 		} finally {
-			return id;
+			try {
+				if(con != null) {
+					con.close();
+				}
+				
+				if (pstmt != null) {
+					pstmt.close();
+				}
+				
+				if (rs != null) {
+					rs.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
+		return id;
 	}
 	
 	/* status 테이블 insert 쿼리 */
@@ -72,6 +89,20 @@ public class DBConnection {
 			
 		} catch(SQLException e) {
 			e.printStackTrace();
+			
+		} finally {
+			try {
+				if(con != null) {
+					con.close();
+				}
+				
+				if (pstmt != null) {
+					pstmt.close();
+				}
+				
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -87,17 +118,75 @@ public class DBConnection {
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
+			
+		} finally {
+			try {
+				if(con != null) {
+					con.close();
+				}
+				
+				if (pstmt != null) {
+					pstmt.close();
+				}
+				
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
-	/* DB연결종료 메소드 */
-	public void connectionClose() {
+	public void deleteDevice(int deviceId) {
+		String query = "delete from device where id=?";
+		
 		try {
-			con.close();
+			pstmt = con.prepareStatement(query);
+			pstmt.setInt(1, deviceId);
+			pstmt.executeUpdate(); 
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
+			
+		} finally {
+			try {
+				if(con != null) {
+					con.close();
+				}
+				
+				if (pstmt != null) {
+					pstmt.close();
+				}
+				
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
+	}
+	
+	public void deleteStatus(int deviceId) {
+		String query = "delete from status where device_id=?";
 		
+		try {
+			pstmt = con.prepareStatement(query);
+			pstmt.setInt(1, deviceId);
+			pstmt.executeUpdate(); 
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			
+		} finally {
+			try {
+				if(con != null) {
+					con.close();
+				}
+				
+				if (pstmt != null) {
+					pstmt.close();
+				}
+				
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	public Connection getConnection() {

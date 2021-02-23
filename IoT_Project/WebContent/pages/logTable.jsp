@@ -68,7 +68,25 @@
 			
 		} catch (Exception e) {
 			e.printStackTrace();
-		} 
+			
+		} finally {
+			try {
+				if(con != null) {
+					con.close();
+				}
+				
+				if (pstmt != null) {
+					pstmt.close();
+				}
+				
+				if (rs != null) {
+					rs.close();
+				}
+				
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 		%>
 	</table>
 	

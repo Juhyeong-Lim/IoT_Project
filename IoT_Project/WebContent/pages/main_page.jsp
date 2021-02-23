@@ -1,10 +1,12 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
+<%@ page import="IoT_Project.IoT_Server" %>
 
 <html>
 <head>
 <meta charset="UTF-8">
 <link rel="stylesheet" type="text/css" href="web-css.css" />
+
 <script type="text/javascript" src="js/jquery-3.5.1.min.js"></script>
 <script>
 	$(document).ready(function() {
@@ -30,6 +32,6 @@
 	
 	<p style="font-size: 18px; ">전체 로그 정보</p>
 	<div id="log"></div>
-	
+
 </body>
 </html>

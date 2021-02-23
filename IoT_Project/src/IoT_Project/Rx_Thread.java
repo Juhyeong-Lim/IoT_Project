@@ -18,12 +18,14 @@ public class Rx_Thread extends Thread {
 	private int devId = 0;
 	ReentrantLock lock = new ReentrantLock();
 	private DBConnection db = new DBConnection();
-
+	private long heartTimePrev, heartTimeCurrent;
+	
 	public Rx_Thread(TCO tco, Socket socket, Device device) {
 		this.socket = socket;
 		this.device = device;
 		this.tco = tco;
 		devId = device.getId();
+		heartTimePrev = heartTimeCurrent = System.currentTimeMillis();
 	}
 
 	@Override
@@ -39,10 +41,37 @@ public class Rx_Thread extends Thread {
 
 			while (true) {
 				if (this.socket == null) {
+					System.out.println("Socket null");
 					break;
 				}
-
+				
+				if(socket.isClosed()) {
+					System.out.println("[Rx" + devId + "] Socket closed");
+					break;
+				}
+				
+				//HeartBeat Check
+				heartTimeCurrent = System.currentTimeMillis();
+				if( (heartTimeCurrent - heartTimePrev)/1000 > 31) {
+					System.out.println("[Rx" + devId + "] HeartBeat arrested");
+					lock.lock();
+					try {
+	            	  sleep(1);
+	                  tco.setTco(-1);
+					} catch(InterruptedException e) {
+					} finally {
+	                  lock.unlock();
+					}
+					socket.close();
+					break;
+				}
+				
+				try {
 				read = bis.read(buff, 0, 1024);
+				}
+				catch(Exception e ){
+					continue;
+				}
 				if (read < 0) {
 					break;
 				}
@@ -72,30 +101,26 @@ public class Rx_Thread extends Thread {
 					System.arraycopy(buff, 16, tempData, 0, 4);
 					tempBuffer = ByteBuffer.wrap(tempData);
 					int data = tempBuffer.order(ByteOrder.LITTLE_ENDIAN).getInt();
-					System.out.println("[" + devId + "]Data : " + data);
+					System.out.println("[RX" + devId + "]Data : " + data);
 
 					// TODO : Insert into StatusTable
-					System.out.println("[RX]데이터 수신");
-					System.out.println("[RX]Device ID: " + id);
-					System.out.println("[RX]Action Code: " + tempAction);
-					System.out.println("[RX]Data: " + data);
+					System.out.println("[RX" + devId + "]데이터 수신");
+					System.out.println("[RX" + devId + "]Device ID: " + id);
+					System.out.println("[RX" + devId + "]Action Code: " + tempAction);
+					System.out.println("[RX" + devId + "]Data: " + data);
 					
 					if(device.getId() == id) {
 						if(tempAction == 1) { // action: 1 -> 열림
 							db.insertStatus(id, "열림", data);
-							System.out.println("[RX]status테이블에 정보가 저장되었습니다.(열림)");
+							System.out.println("[RX" + devId + "]status테이블에 정보가 저장되었습니다.(열림)");
 						}
 						
 						else if(tempAction == 0) { // action: 0 -> 닫힘
 							db.insertStatus(id, "닫힘", data);
-							System.out.println("[RX]status테이블에 정보가 저장되었습니다.(닫힘)");
+							System.out.println("[RX" + devId + "]status테이블에 정보가 저장되었습니다.(닫힘)");
 						}
 						
 					}
-					
-					
-					
-
 //                  ///////////호출방식///////////////////////////////////
 //                  lock.lock();
 //               try {
@@ -109,6 +134,17 @@ public class Rx_Thread extends Thread {
 //                  /////////////////////////////////////////////////
 
 				}
+				if (messageOP == 7) {
+					heartTimePrev = heartTimeCurrent;
+					lock.lock();
+					try {
+	            	  sleep(1);
+	                  tco.setTco(8);
+					} catch(InterruptedException e) {
+					} finally {
+	                  lock.unlock();
+					}
+				}
 
 			}
 
@@ -116,24 +152,11 @@ public class Rx_Thread extends Thread {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		System.out.println("[RX" + devId + "] Thread EXIT");
 	}
 
-	public String byteToHex(byte[] b) {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 5; i >= 0; i--) {
-			if (b[i] < 16) {
-				System.out.print("0");
-			}
-			// System.out.print(b[i]);
-			sb.append(String.format("%02x", b[i] & 0xff));
-			if (i > 0) {
-				sb.append(String.format(":"));
-			}
-
-		}
-
-		return sb.toString();
-	}
+	
+	
+	
 
 }
